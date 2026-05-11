@@ -55,11 +55,8 @@ stdenvNoCC.mkDerivation {
     chmod +x $out/libexec/pi/pi
 
     ${if isLinux then ''
-      # Invoke via the Nix dynamic loader without modifying the binary.
-      makeWrapper ${stdenv.cc.bintools.dynamicLinker} $out/bin/pi \
-        --add-flags "--argv0 pi $out/libexec/pi/pi" \
+      makeWrapper $out/libexec/pi/pi $out/bin/pi \
         --prefix PATH : "${runtimeBins}" \
-        --prefix LD_LIBRARY_PATH : "${runtimeLibs}" \
         --run 'export NPM_CONFIG_PREFIX="''${NPM_CONFIG_PREFIX:-$HOME/.local/share/pi/npm-prefix}"' \
         --run 'mkdir -p "$NPM_CONFIG_PREFIX"'
     '' else ''
