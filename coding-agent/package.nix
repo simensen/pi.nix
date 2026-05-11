@@ -23,6 +23,11 @@ let
     ripgrep
     fd
   ];
+
+  runtimeLibs = lib.makeLibraryPath [
+    stdenv.cc.cc.lib
+    zlib
+  ];
 in
 stdenvNoCC.mkDerivation {
   pname = "pi-coding-agent";
@@ -32,9 +37,7 @@ stdenvNoCC.mkDerivation {
 
   sourceRoot = "pi";
 
-  nativeBuildInputs =
-    [ makeWrapper ]
-    ++ lib.optionals isLinux [ autoPatchelfHook ];
+  nativeBuildInputs = [ makeWrapper ];
 
   buildInputs = lib.optionals isLinux [
     stdenv.cc.cc.lib
@@ -51,10 +54,20 @@ stdenvNoCC.mkDerivation {
     cp -r . $out/libexec/pi/
     chmod +x $out/libexec/pi/pi
 
-    makeWrapper $out/libexec/pi/pi $out/bin/pi \
-      --prefix PATH : "${runtimeBins}" \
-      --run 'export NPM_CONFIG_PREFIX="''${NPM_CONFIG_PREFIX:-$HOME/.local/share/pi/npm-prefix}"' \
-      --run 'mkdir -p "$NPM_CONFIG_PREFIX"'
+    ${if isLinux then ''
+      # Invoke via the Nix dynamic loader without modifying the binary.
+      makeWrapper ${stdenv.cc.bintools.dynamicLinker} $out/bin/pi \
+        --add-flags "--argv0 pi $out/libexec/pi/pi" \
+        --prefix PATH : "${runtimeBins}" \
+        --prefix LD_LIBRARY_PATH : "${runtimeLibs}" \
+        --run 'export NPM_CONFIG_PREFIX="''${NPM_CONFIG_PREFIX:-$HOME/.local/share/pi/npm-prefix}"' \
+        --run 'mkdir -p "$NPM_CONFIG_PREFIX"'
+    '' else ''
+      makeWrapper $out/libexec/pi/pi $out/bin/pi \
+        --prefix PATH : "${runtimeBins}" \
+        --run 'export NPM_CONFIG_PREFIX="''${NPM_CONFIG_PREFIX:-$HOME/.local/share/pi/npm-prefix}"' \
+        --run 'mkdir -p "$NPM_CONFIG_PREFIX"'
+    ''}
 
     runHook postInstall
   '';
@@ -65,10 +78,8 @@ stdenvNoCC.mkDerivation {
     license = lib.licenses.mit;
     mainProgram = "pi";
     platforms = [
-      "aarch64-darwin"
-      "x86_64-darwin"
-      "aarch64-linux"
-      "x86_64-linux"
+      "aarch64-darwin" "x86_64-darwin"
+      "aarch64-linux" "x86_64-linux"
     ];
     sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
   };
