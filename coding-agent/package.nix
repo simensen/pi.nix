@@ -32,9 +32,7 @@ stdenvNoCC.mkDerivation {
 
   sourceRoot = "pi";
 
-  nativeBuildInputs =
-    [ makeWrapper ]
-    ++ lib.optionals isLinux [ autoPatchelfHook ];
+  nativeBuildInputs = [ makeWrapper ];
 
   buildInputs = lib.optionals isLinux [
     stdenv.cc.cc.lib
