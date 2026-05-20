@@ -18,12 +18,15 @@ die() { echo "$*" >&2; exit 1; }
 out() { [[ -n ${GITHUB_OUTPUT:-} ]] && echo "$1=$2" >> "$GITHUB_OUTPUT" || true; }
 
 latest_tag() {
-  local response version
+  local response ok version
   response=$(curl -fsSL "$latest_version_url") \
     || die "Failed to query $latest_version_url"
-  [[ "$(jq -r '.ok' <<< "$response")" == "true" ]] \
+  ok=$(jq -r '.ok' <<< "$response") \
+    || die "Failed to parse JSON from $latest_version_url: $response"
+  [[ "$ok" == "true" ]] \
     || die "$latest_version_url returned ok!=true: $response"
-  version=$(jq -r '.version' <<< "$response")
+  version=$(jq -r '.version' <<< "$response") \
+    || die "Failed to extract .version from $latest_version_url response: $response"
   [[ "$version" =~ ^[0-9]+(\.[0-9]+)*$ ]] \
     || die "pi.dev announced non-stable version: $version"
   printf 'v%s\n' "$version"

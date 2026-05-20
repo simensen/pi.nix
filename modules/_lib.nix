@@ -6,8 +6,13 @@
 }:
 
 let
-  environmentIsAttrs = cfg.environment != null && lib.isAttrs cfg.environment;
-  environmentIsFile = cfg.environment != null && !lib.isAttrs cfg.environment;
+  # lib.types.path accepts derivations, and `lib.isAttrs` returns true for them,
+  # so an env-file passed as e.g. `pkgs.writeText "env" "..."` would be
+  # misclassified as the attrset-of-paths case without the isDerivation guard.
+  environmentIsAttrs =
+    cfg.environment != null && lib.isAttrs cfg.environment && !lib.isDerivation cfg.environment;
+  environmentIsFile =
+    cfg.environment != null && (!lib.isAttrs cfg.environment || lib.isDerivation cfg.environment);
   environmentFiles = lib.optionalAttrs environmentIsAttrs cfg.environment;
 
   builtPi = mkPi {

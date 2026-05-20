@@ -14,6 +14,11 @@ let
   helpers = import ./_lib.nix {
     inherit cfg pkgs lib mkPi;
   };
+
+  invalidUsers = builtins.filter (
+    name:
+    !(builtins.hasAttr name (lib.filterAttrs (_: user: user.isNormalUser or false) config.users.users))
+  ) cfg.users;
 in
 {
   imports = [ (import ./common.nix { inherit self; }) ];
@@ -35,22 +40,8 @@ in
       {
         assertions = [
           {
-            assertion =
-              let
-                invalid = builtins.filter (
-                  name:
-                  !(builtins.hasAttr name (lib.filterAttrs (_: user: user.isNormalUser or false) config.users.users))
-                ) cfg.users;
-              in
-              invalid == [ ];
-            message =
-              let
-                invalid = builtins.filter (
-                  name:
-                  !(builtins.hasAttr name (lib.filterAttrs (_: user: user.isNormalUser or false) config.users.users))
-                ) cfg.users;
-              in
-              "programs.pi.coding-agent.users contains unknown or non-normal users: ${lib.concatStringsSep ", " invalid}";
+            assertion = invalidUsers == [ ];
+            message = "programs.pi.coding-agent.users contains unknown or non-normal users: ${lib.concatStringsSep ", " invalidUsers}";
           }
           helpers.envNameAssertion
         ];

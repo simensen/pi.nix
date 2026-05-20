@@ -35,11 +35,23 @@ let
     ++ pathFlags "--theme" themes
     ++ pathFlags "--prompt-template" promptTemplates;
 
+  invalidEnvNames = lib.optionals (environment != null) (
+    builtins.filter (n: builtins.match "[A-Za-z_][A-Za-z0-9_]*" n == null) (
+      builtins.attrNames environment
+    )
+  );
+
+  checkedEnvironment =
+    if invalidEnvNames == [ ] then
+      environment
+    else
+      throw "mkPi: environment contains invalid shell variable names: ${lib.concatStringsSep ", " invalidEnvNames}";
+
   wrapperPrelude = lib.optionalString (environment != null) (
     lib.concatLines (
       lib.mapAttrsToList (envName: path: ''
         export ${envName}="$(cat ${lib.escapeShellArg (toString path)})"
-      '') environment
+      '') checkedEnvironment
     )
   );
 
