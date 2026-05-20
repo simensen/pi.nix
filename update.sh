@@ -1,9 +1,9 @@
 #!/usr/bin/env nix-shell
-#!nix-shell -i bash -p bash git jq nix
+#!nix-shell -i bash -p bash jq nix curl
 # shellcheck shell=bash
 set -euo pipefail
 
-repo_url=https://github.com/earendil-works/pi.git
+latest_version_url=https://pi.dev/api/latest-version
 release_base_url=https://github.com/earendil-works/pi/releases/download
 version_file=VERSION.json
 
@@ -18,11 +18,15 @@ die() { echo "$*" >&2; exit 1; }
 out() { [[ -n ${GITHUB_OUTPUT:-} ]] && echo "$1=$2" >> "$GITHUB_OUTPUT" || true; }
 
 latest_tag() {
-  git ls-remote --tags --refs "$repo_url" 'v*' \
-    | awk -F/ '{print $3}' \
-    | grep -E '^v[0-9]+(\.[0-9]+)*$' \
-    | sort -V \
-    | tail -n1
+  local response version
+  response=$(curl -fsSL "$latest_version_url") \
+    || die "Failed to query $latest_version_url"
+  [[ "$(jq -r '.ok' <<< "$response")" == "true" ]] \
+    || die "$latest_version_url returned ok!=true: $response"
+  version=$(jq -r '.version' <<< "$response")
+  [[ "$version" =~ ^[0-9]+(\.[0-9]+)*$ ]] \
+    || die "pi.dev announced non-stable version: $version"
+  printf 'v%s\n' "$version"
 }
 
 cleanup() {
