@@ -3,10 +3,11 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    jail-nix.url = "sourcehut:~alexdavid/jail.nix";
   };
 
   outputs =
-    { self, nixpkgs }:
+    { self, nixpkgs, jail-nix }:
     let
       versionData = builtins.fromJSON (builtins.readFile ./VERSION.json);
       version = nixpkgs.lib.removePrefix "v" versionData.rev;
@@ -33,7 +34,16 @@
         }
       );
 
-      lib = forEachSystem (system: import ./lib { pkgs = pkgsFor system; });
+      lib = forEachSystem (
+        system:
+        let
+          pkgs = pkgsFor system;
+        in
+        import ./lib {
+          inherit pkgs;
+          jail-nix = if pkgs.stdenv.hostPlatform.isLinux then jail-nix else null;
+        }
+      );
 
       formatter = forEachSystem (system: (pkgsFor system).nixfmt-rfc-style);
 
