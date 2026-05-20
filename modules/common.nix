@@ -1,44 +1,10 @@
-self:
+{ self }:
 {
-  config,
   lib,
   pkgs,
   ...
 }:
 
-let
-  cfg = config.programs.pi.coding-agent;
-
-  mkPi = self.lib.${pkgs.stdenv.hostPlatform.system}.mkPi;
-
-  environmentIsAttrs = cfg.environment != null && lib.isAttrs cfg.environment;
-  environmentIsFile = cfg.environment != null && !lib.isAttrs cfg.environment;
-  environmentFiles = lib.optionalAttrs environmentIsAttrs cfg.environment;
-
-  builtPi = mkPi {
-    coding-agent = cfg.package;
-    inherit (cfg)
-      rules
-      skills
-      extensions
-      themes
-      promptTemplates
-      extraFlags
-      ;
-    environment = if environmentIsAttrs then cfg.environment else null;
-  };
-
-  wrappedPackage =
-    if environmentIsFile then
-      pkgs.writeShellScriptBin "pi" ''
-        set -a
-        . ${lib.escapeShellArg (toString cfg.environment)}
-        set +a
-        exec ${lib.escapeShellArg (lib.getExe builtPi)} "$@"
-      ''
-    else
-      builtPi;
-in
 {
   options.programs.pi.coding-agent = {
     enable = lib.mkEnableOption "pi agent";
@@ -48,18 +14,6 @@ in
       default = self.packages.${pkgs.stdenv.hostPlatform.system}.coding-agent;
       defaultText = lib.literalExpression "inputs.pi-mono.packages.${pkgs.stdenv.hostPlatform.system}.coding-agent";
       description = "The pi coding agent package to install.";
-    };
-
-    users = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [ ];
-      defaultText = lib.literalExpression "[ ] (interpreted as all normal users)";
-      description = ''
-        Normal users whose `~/.pi/agent` should be managed.
-
-        An empty list means all normal users.
-      '';
-      example = [ "lukas" ];
     };
 
     rules = lib.mkOption {
@@ -172,72 +126,4 @@ in
       '';
     };
   };
-
-  config = lib.mkIf cfg.enable (
-    lib.mkMerge [
-      {
-        assertions = [
-          {
-            assertion =
-              let
-                invalid = builtins.filter (
-                  name:
-                  !(builtins.hasAttr name (lib.filterAttrs (_: user: user.isNormalUser or false) config.users.users))
-                ) cfg.users;
-              in
-              invalid == [ ];
-            message =
-              let
-                invalid = builtins.filter (
-                  name:
-                  !(builtins.hasAttr name (lib.filterAttrs (_: user: user.isNormalUser or false) config.users.users))
-                ) cfg.users;
-              in
-              "programs.pi.coding-agent.users contains unknown or non-normal users: ${lib.concatStringsSep ", " invalid}";
-          }
-          {
-            assertion =
-              let
-                invalid = builtins.filter (name: builtins.match "[A-Za-z_][A-Za-z0-9_]*" name == null) (
-                  builtins.attrNames environmentFiles
-                );
-              in
-              invalid == [ ];
-            message =
-              let
-                invalid = builtins.filter (name: builtins.match "[A-Za-z_][A-Za-z0-9_]*" name == null) (
-                  builtins.attrNames environmentFiles
-                );
-              in
-              "programs.pi.coding-agent.environment contains invalid environment variable names: ${lib.concatStringsSep ", " invalid}";
-          }
-        ];
-
-        environment.systemPackages = [ wrappedPackage ];
-      }
-
-      (lib.mkIf (cfg.models != null) (
-        let
-          rules = [
-            "d %h/.pi 0700 - - -"
-            "d %h/.pi/agent 0700 - - -"
-            "L+ %h/.pi/agent/models.json - - - - ${cfg.models}"
-          ];
-        in
-        lib.mkMerge [
-          (lib.mkIf (cfg.users == [ ]) {
-            systemd.user.tmpfiles.rules = rules;
-          })
-          (lib.mkIf (cfg.users != [ ]) {
-            systemd.user.tmpfiles.users = builtins.listToAttrs (
-              map (name: {
-                inherit name;
-                value.rules = rules;
-              }) cfg.users
-            );
-          })
-        ]
-      ))
-    ]
-  );
 }

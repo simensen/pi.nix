@@ -45,7 +45,12 @@
 
       nixosModules = rec {
         default = coding-agent;
-        coding-agent = import ./coding-agent/module.nix self;
+        coding-agent = import ./modules/nixos.nix self;
+      };
+
+      homeManagerModules = rec {
+        default = coding-agent;
+        coding-agent = import ./modules/home-manager.nix self;
       };
     };
 }
