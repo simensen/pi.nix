@@ -33,6 +33,8 @@
         }
       );
 
+      lib = forEachSystem (system: import ./lib { pkgs = pkgsFor system; });
+
       formatter = forEachSystem (system: (pkgsFor system).nixfmt-rfc-style);
 
       overlays = {

@@ -9,58 +9,35 @@ self:
 let
   cfg = config.programs.pi.coding-agent;
 
-  environmentFiles = lib.optionalAttrs (lib.isAttrs cfg.environment) cfg.environment;
-  rulesPath = if cfg.rules == null then null else pkgs.writeText "pi-AGENTS.md" cfg.rules;
+  mkPi = self.lib.${pkgs.stdenv.hostPlatform.system}.mkPi;
 
-  pathFlags =
-    flag: paths:
-    lib.concatMap (path: [
-      flag
-      (toString path)
-    ]) paths;
+  environmentIsAttrs = cfg.environment != null && lib.isAttrs cfg.environment;
+  environmentIsFile = cfg.environment != null && !lib.isAttrs cfg.environment;
+  environmentFiles = lib.optionalAttrs environmentIsAttrs cfg.environment;
 
-  resourceArgs =
-    (lib.optionals (rulesPath != null) [
-      "--append-system-prompt"
-      (toString rulesPath)
-    ])
-    ++ pathFlags "--skill" cfg.skills
-    ++ pathFlags "--extension" cfg.extensions
-    ++ pathFlags "--theme" cfg.themes
-    ++ pathFlags "--prompt-template" cfg.promptTemplates;
+  builtPi = mkPi {
+    coding-agent = cfg.package;
+    inherit (cfg)
+      rules
+      skills
+      extensions
+      themes
+      promptTemplates
+      extraFlags
+      ;
+    environment = if environmentIsAttrs then cfg.environment else null;
+  };
 
-  wrapperPrelude = lib.optionalString (cfg.environment != null) (
-    if lib.isAttrs cfg.environment then
-      lib.concatLines (
-        lib.mapAttrsToList (name: path: ''
-          export ${name}="$(cat ${lib.escapeShellArg (toString path)})"
-        '') environmentFiles
-      )
-    else
-      ''
+  wrappedPackage =
+    if environmentIsFile then
+      pkgs.writeShellScriptBin "pi" ''
         set -a
         . ${lib.escapeShellArg (toString cfg.environment)}
         set +a
+        exec ${lib.escapeShellArg (lib.getExe builtPi)} "$@"
       ''
-  );
-
-  wrapperArgs = lib.concatMapStringsSep " " lib.escapeShellArg resourceArgs;
-  extraFlagsArgs = lib.concatMapStringsSep " " lib.escapeShellArg cfg.extraFlags;
-
-  wrappedPackage =
-    if resourceArgs == [ ] && cfg.environment == null && cfg.extraFlags == [ ] then
-      cfg.package
     else
-      pkgs.writeShellScriptBin "pi" ''
-        ${wrapperPrelude}
-        case "''${1-}" in install|remove|uninstall|update|list|config)
-            exec ${lib.escapeShellArg (lib.getExe cfg.package)} "$@"
-            ;;
-          *)
-            exec ${lib.escapeShellArg (lib.getExe cfg.package)} ${wrapperArgs} ${extraFlagsArgs} "$@"
-            ;;
-        esac
-      '';
+      builtPi;
 in
 {
   options.programs.pi.coding-agent = {
