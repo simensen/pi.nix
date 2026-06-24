@@ -1,21 +1,21 @@
 {
-  "rev": "v0.79.10",
+  "rev": "v0.80.2",
   "systems": {
     "aarch64-darwin": {
-      "url": "https://github.com/earendil-works/pi/releases/download/v0.79.10/pi-darwin-arm64.tar.gz",
-      "hash": "sha256-bRuemc5jkqhxpKiGsfusBAtRwkvWUiGuBXOw57i7sws="
+      "url": "https://github.com/earendil-works/pi/releases/download/v0.80.2/pi-darwin-arm64.tar.gz",
+      "hash": "sha256-x9Elu969hj+nbZInRFi6DrQF5c3jnbNNsfSfdn7Z8d0="
     },
     "x86_64-darwin": {
-      "url": "https://github.com/earendil-works/pi/releases/download/v0.79.10/pi-darwin-x64.tar.gz",
-      "hash": "sha256-HW26jgBEcICHMMfwBe1SH9FSws0mj7ATz2y2whDP8v8="
+      "url": "https://github.com/earendil-works/pi/releases/download/v0.80.2/pi-darwin-x64.tar.gz",
+      "hash": "sha256-1La2Kgw0wPLkyxbub9TwCGuGrXDgSI/T2qkjEhbYTis="
     },
     "aarch64-linux": {
-      "url": "https://github.com/earendil-works/pi/releases/download/v0.79.10/pi-linux-arm64.tar.gz",
-      "hash": "sha256-7lgFc09mXURIIoW3gBJi4qFlJFsBU+0sML1qkVLIRic="
+      "url": "https://github.com/earendil-works/pi/releases/download/v0.80.2/pi-linux-arm64.tar.gz",
+      "hash": "sha256-Bxns9QpCyuefTG8NSmLgjo1EIXiMzQUNCKW781yI7fY="
     },
     "x86_64-linux": {
-      "url": "https://github.com/earendil-works/pi/releases/download/v0.79.10/pi-linux-x64.tar.gz",
-      "hash": "sha256-o4yiHyersPbVWLTLnRoRuz7+dvZdnXObmwfXuDnSNnk="
+      "url": "https://github.com/earendil-works/pi/releases/download/v0.80.2/pi-linux-x64.tar.gz",
+      "hash": "sha256-Lmh3K76qzXNIh1EJgZOHU4lja4BYkQBgmimSHe1xyYQ="
     }
   }
 }
